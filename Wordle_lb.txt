@@ -1,0 +1,2 @@
+wordle Wordle 40
+r Wordle 0

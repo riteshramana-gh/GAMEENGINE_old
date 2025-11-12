@@ -1,0 +1,2 @@
+minesweeper Minesweeper 40
+ri Minesweeper 0
