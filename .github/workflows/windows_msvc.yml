@@ -1,0 +1,34 @@
+name: Build Windows EXE (MSVC)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Visual Studio developer environment
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build with MSVC (cl.exe)
+        shell: pwsh
+        run: |
+          Write-Host "Compiling with MSVC (cl.exe)..."
+
+          # Create output folder
+          mkdir build
+
+          # Compile all .cpp files
+          cl /utf-8 /EHsc /Zi /Fe:build/pixelforge_win.exe *.cpp
+
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelforge_win
+          path: build/pixelforge_win.exe
