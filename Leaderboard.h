@@ -1,7 +1,7 @@
 #ifndef LEADERBOARD_H
 #define LEADERBOARD_H
 
-#include "Player.h"
+#include "player.h"
 #include <vector>
 #include <string>
 #include <fstream>

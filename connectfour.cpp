@@ -1,5 +1,5 @@
 #include "connectfour.h"
-#include "leaderboard.h"
+#include "Leaderboard.h"
 #include <iostream>
 #include <thread>
 #include <chrono>

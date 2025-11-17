@@ -11,6 +11,7 @@
 #include <limits>
 #include <string>
 #include <exception>
+
 using namespace std;
 
 #define RESET   "\033[0m"
@@ -25,6 +26,35 @@ using namespace std;
 #else
     #define CLEAR_COMMAND "clear"
 #endif
+
+
+// ---------- Windows ----------
+#if defined(_WIN32) || defined(_WIN64)
+#include <conio.h>
+inline char getch_cross() {
+    return _getch();
+}
+
+// ---------- Linux / macOS ----------
+#else
+#include <termios.h>
+#include <unistd.h>
+
+inline char getch_cross() {
+    termios oldt{}, newt{};
+    tcgetattr(STDIN_FILENO, &oldt);
+
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO); // no buffering, no echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    char ch = getchar();
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt); // restore
+    return ch;
+}
+#endif
+
 
 void clearScreen() {
     system(CLEAR_COMMAND);
@@ -52,41 +82,28 @@ void animatedIntro() {
 
     cout << YELLOW << "\n                                                    ⚔️  MULTI-GAME ENGINE  ⚔️\n" << RESET;
     cout << "\n                                                  Press Enter to continue...";
-    cin.get();
-}
+    cin.sync();
+cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-void gameIntro(const string logo[], int size) {
-    clearScreen();
-
-    for (int i = 0; i < size; i++) {
-        cout <<GREEN << logo[i] << RESET << endl;
-        this_thread::sleep_for(chrono::milliseconds(100));
-    }
 }
 
 // ...existing code...
 
 // safe input parser: reads a line and converts to int, throws on invalid input
+
+
 int readMenuChoice() {
-    string line;
-    if (!getline(cin, line)) {
-        throw runtime_error("Failed to read input");
-    }
-    // if empty because previous >> left newline, read again
-    if (line.size() == 0) {
-        if (!getline(cin, line)) throw runtime_error("Failed to read input");
-    }
-    try {
-        size_t idx = 0;
-        int val = stoi(line, &idx);
-        if (idx != line.size()) throw invalid_argument("Extra characters in input");
-        return val;
-    } catch (const invalid_argument&) {
-        throw invalid_argument("Invalid input. Please enter a number (1-7).");
-    } catch (const out_of_range&) {
-        throw invalid_argument("Number out of range. Please enter a valid choice.");
-    }
+    cout << "\nEnter choice: " << flush;
+
+    char ch = getch_cross();
+    cout << ch << "\n";   // echo key so user sees it
+
+    if (ch < '1' || ch > '7')
+        return -1; // invalid
+
+    return ch - '0';
 }
+
 
 void mainMenu() {
     int choice;
@@ -94,6 +111,7 @@ void mainMenu() {
 
     while (true) {
         clearScreen();
+
         string lines[] = {
             "     ██████   ██████            ███                ██████   ██████                               ",
             "    ░░██████ ██████            ░░░                ░░██████ ██████                                ",
@@ -118,171 +136,82 @@ void mainMenu() {
         cout << RED << "      ║" << YELLOW << "6. View Leaderboard" << RED << "             ║" << endl;
         cout << RED << "      ║" << GREEN << "7. Exit" << RESET << RED << "                         ║" << endl;
         cout << RED << "     ════════════════════════════════════" << endl;
-        cout << "\nEnter choice: " << RESET;
 
-        try {
-            choice = readMenuChoice();
-        } catch (const exception& e) {
-            cout << RED << e.what() << "\n" << RESET;
-            this_thread::sleep_for(chrono::seconds(2));
+        choice = readMenuChoice();
+
+        if (choice == -1) {
+            cout << RED << "Invalid choice!\n" << RESET;
+            this_thread::sleep_for(chrono::seconds(1));
             continue;
         }
 
-        if (choice == 1) {
-            clearScreen();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            string playerName;
-            cout << CYAN << "\nEnter your name: " << RESET;
-            getline(cin, playerName);
+        // ------------ ASK NAME -----------
+        string playerName;
+        clearScreen();
+        cout << CYAN << "\nEnter your name: " << RESET;
+        getline(cin, playerName);
 
-            try {
+        // ------------ SWITCH GAMES ------------
+        try {
+            if (choice == 1) {
                 auto game = make_game<Battleship>(playerName);
-                try {
-                    game->showLogo();
-                    game->start();
-                } catch (const exception& e) {
-                    throw; // handled by outer catch below
-                }
-            } catch (const exception& e) {
-                cout << RED << "Game error: " << e.what() << RESET << endl;
-                this_thread::sleep_for(chrono::seconds(2));
+                game->showLogo();
+                game->start();
             }
-
-            cout << "\nReturning to main menu in 3 seconds...\n";
-            this_thread::sleep_for(chrono::seconds(3));
-        }
-        else if (choice == 2) {
-            clearScreen();
-
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            string playerName;
-            cout << CYAN << "\nEnter your name: " << RESET;
-            getline(cin, playerName);
-
-            try {
+            else if (choice == 2) {
                 auto game = make_game<Connect4>(playerName);
-                try {
-                    game->showLogo();
-                    game->start();
-                } catch (...) {
-                    throw;
-                }
-            } catch (const exception& e) {
-                cout << RED << "Game error: " << e.what() << RESET << endl;
-                this_thread::sleep_for(chrono::seconds(2));
+                game->showLogo();
+                game->start();
             }
-
-            cout << "\nReturning to main menu in 3 seconds...\n";
-            this_thread::sleep_for(chrono::seconds(3));
-        }
-        else if (choice == 3) {
-            clearScreen();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            string playerName;
-            cout << CYAN << "\nEnter your name: " << RESET;
-            getline(cin, playerName);
-
-            try {
+            else if (choice == 3) {
                 auto game = make_game<Minesweeper>(9, 9, 10, playerName);
-                try {
-                    game->showLogo();
-                    game->start();
-                } catch (...) {
-                    
-                    throw;
-                }
-                
-            } catch (const exception& e) {
-                cout << RED << "Game error: " << e.what() << RESET << endl;
-                this_thread::sleep_for(chrono::seconds(2));
+                game->showLogo();
+                game->start();
             }
-
-            cout << "\nReturning to main menu in 3 seconds...\n";
-            this_thread::sleep_for(chrono::seconds(3));
-        }
-        else if (choice == 4) {
-            clearScreen();
-
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            string playerName;
-            cout << CYAN << "\nEnter your name: " << RESET;
-            getline(cin, playerName);
-
-            try {
+            else if (choice == 4) {
                 auto game = make_game<Wordle>(playerName);
-                try {
-                    game->showLogo();
-                    game->start();
-                } catch (...) {
-                    
-                    throw;
-                }
-                
-            } catch (const exception& e) {
-                cout << RED << "Game error: " << e.what() << RESET << endl;
-                this_thread::sleep_for(chrono::seconds(2));
+                game->showLogo();
+                game->start();
             }
-
-            cout << "\nReturning to main menu in 3 seconds...\n";
-            this_thread::sleep_for(chrono::seconds(3));
-        }
-        else if (choice == 5) {
-            clearScreen();
-
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            string playerName;
-            cout << CYAN << "\nEnter your name: " << RESET;
-            getline(cin, playerName);
-
-            try {
+            else if (choice == 5) {
                 auto game = make_game<Tictactoe>(playerName);
-                try {
-                    game->showLogo();
-                    game->start();
-                } catch (...) {
-                    throw;
-                }
-            } catch (const exception& e) {
-                cout << RED << "Game error: " << e.what() << RESET << endl;
-                this_thread::sleep_for(chrono::seconds(2));
+                game->showLogo();
+                game->start();
             }
+            else if (choice == 6) {
+                clearScreen();
+                cout << YELLOW << "COMBINED LEADERBOARD :" << RESET << endl;
 
-            cout << "\nReturning to main menu in 3 seconds...\n";
-            this_thread::sleep_for(chrono::seconds(3));
+                Leaderboard battleshipLB("Battleship");
+                Leaderboard connect4LB("Connect4");
+                Leaderboard minesweeperLB("Minesweeper");
+                Leaderboard wordleLB("Wordle");
+                Leaderboard tictactoeLB("TicTacToe");
+
+                Leaderboard combinedLB = battleshipLB + connect4LB + minesweeperLB + wordleLB + tictactoeLB;
+                cout << combinedLB;
+
+                cout << "\nPress Enter to return...";
+                cin.get();
+                continue;
+            }
+            else if (choice == 7) {
+                clearScreen();
+                cout << GREEN << "Thanks for playing!" << RESET << endl;
+                break;
+            }
         }
-
-        else if (choice == 6) {
-            clearScreen();
-            cout << YELLOW << "COMBINED LEADERBOARD :" << RESET << endl;
-
-            Leaderboard battleshipLB("Battleship");
-            Leaderboard connect4LB("Connect4");
-            Leaderboard minesweeperLB("Minesweeper");
-            Leaderboard wordleLB("Wordle");
-            Leaderboard tictactoeLB("TicTacToe");
-
-            Leaderboard combinedLB = battleshipLB + connect4LB;
-            combinedLB=combinedLB+minesweeperLB;
-            combinedLB=combinedLB+wordleLB;
-            combinedLB=combinedLB+tictactoeLB;
-            cout << combinedLB;
-
-            cout << "\nPress Enter to return to menu...";
-            cin.ignore();
-            cin.get();
-        }
-
-        else if (choice == 7) {
-            clearScreen();
-            cout << GREEN << "Thanks for playing!" << RESET << endl;
-            break;
-        }
-        else {
-            cout << RED << "Invalid choice. Try again.\n" << RESET;
+        catch (const exception& e) {
+            cout << RED << "Game error: " << e.what() << RESET << endl;
             this_thread::sleep_for(chrono::seconds(2));
         }
+
+        cout << "\nReturning to menu in 3 seconds...\n";
+        this_thread::sleep_for(chrono::seconds(3));
     }
 }
+
+
 
 int main() {
     try {
