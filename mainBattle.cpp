@@ -12,6 +12,11 @@
 #include <string>
 #include <exception>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+
 using namespace std;
 
 #define RESET   "\033[0m"
@@ -213,11 +218,18 @@ void mainMenu() {
 
 
 int main() {
-    
-#ifdef _WIN32
-system("chcp 65001 > nul");
-#endif
 
+#ifdef _WIN32
+    // Set Windows console to UTF-8
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+
+    // Enable UTF-8 output for std::cout
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD dwMode = 0;
+    GetConsoleMode(hOut, &dwMode);
+    SetConsoleMode(hOut, dwMode | ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+#endif
 
     try {
         mainMenu();
