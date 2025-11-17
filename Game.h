@@ -1,6 +1,6 @@
 #ifndef GAME_H
 #define GAME_H
-#include"Player.h"
+#include"player.h"
 #include <iostream>
 #include <string>
 using namespace std;

@@ -1,4 +1,4 @@
-#include "Tictactoe.h"
+#include "tictactoe.h"
 #include <thread>
 #include <chrono>
 #include <cstdlib>

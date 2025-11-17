@@ -1,4 +1,4 @@
-#include "Minesweeper.h"
+#include "minesweeper.h"
 #include "Leaderboard.h"
 #include <iostream>
 #include <thread>

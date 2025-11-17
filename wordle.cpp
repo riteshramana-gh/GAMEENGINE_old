@@ -1,4 +1,4 @@
-#include "Wordle.h"
+#include "wordle.h"
 #include <thread>
 #include <chrono>
 #include <limits>
