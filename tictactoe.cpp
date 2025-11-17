@@ -159,7 +159,6 @@ void Tictactoe::makeMove(int r, int c, char mark) {
 
 
 void Tictactoe::showRules() {
-    system(CLEAR_CMD);
     cout << YELLOW << "\nTIC TAC TOE RULES:\n" << RESET;
     cout << "1. The game is played on a 3x3 grid.\n";
     cout << "2. You are X, the computer is O.\n";
