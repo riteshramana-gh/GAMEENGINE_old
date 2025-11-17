@@ -1,7 +1,7 @@
 name: Build Windows EXE
 
 on:
-  workflow_dispatch:   # lets you manually trigger builds
+  workflow_dispatch:   # run manually
 
 jobs:
   build-windows:
@@ -9,20 +9,22 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install MinGW (GCC for Windows)
         run: choco install mingw --version=12.2.0 -y
 
       - name: Add MinGW to PATH
-        run: echo "C:\tools\mingw64\bin" >> $env:GITHUB_PATH
+        shell: powershell
+        run: echo "C:\tools\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Compile PixelForge
-        run: |
-          g++ *.cpp -o pixelforge_win.exe
+        shell: powershell
+        run: g++ *.cpp -o pixelforge_win.exe
 
-      - name: Upload EXE Artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload Windows EXE
+        uses: actions/upload-artifact@v4
         with:
           name: pixelforge_win
           path: pixelforge_win.exe
+          compression-level: 0   # faster, optional
