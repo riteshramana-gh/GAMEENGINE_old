@@ -141,10 +141,8 @@ void mainMenu() {
                     game->showLogo();
                     game->start();
                 } catch (const exception& e) {
-                    delete game;
                     throw; // handled by outer catch below
                 }
-                delete game;
             } catch (const exception& e) {
                 cout << RED << "Game error: " << e.what() << RESET << endl;
                 this_thread::sleep_for(chrono::seconds(2));
@@ -162,15 +160,13 @@ void mainMenu() {
             getline(cin, playerName);
 
             try {
-                auto game = make_game<Connect4>(playerName)
+                auto game = make_game<Connect4>(playerName);
                 try {
                     game->showLogo();
                     game->start();
                 } catch (...) {
-                    delete game;
                     throw;
                 }
-                delete game;
             } catch (const exception& e) {
                 cout << RED << "Game error: " << e.what() << RESET << endl;
                 this_thread::sleep_for(chrono::seconds(2));
@@ -192,10 +188,10 @@ void mainMenu() {
                     game->showLogo();
                     game->start();
                 } catch (...) {
-                    delete game;
+                    
                     throw;
                 }
-                delete game;
+                
             } catch (const exception& e) {
                 cout << RED << "Game error: " << e.what() << RESET << endl;
                 this_thread::sleep_for(chrono::seconds(2));
@@ -218,10 +214,10 @@ void mainMenu() {
                     game->showLogo();
                     game->start();
                 } catch (...) {
-                    delete game;
+                    
                     throw;
                 }
-                delete game;
+                
             } catch (const exception& e) {
                 cout << RED << "Game error: " << e.what() << RESET << endl;
                 this_thread::sleep_for(chrono::seconds(2));
@@ -244,10 +240,8 @@ void mainMenu() {
                     game->showLogo();
                     game->start();
                 } catch (...) {
-                    delete game;
                     throw;
                 }
-                delete game;
             } catch (const exception& e) {
                 cout << RED << "Game error: " << e.what() << RESET << endl;
                 this_thread::sleep_for(chrono::seconds(2));
