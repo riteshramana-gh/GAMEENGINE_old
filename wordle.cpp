@@ -94,7 +94,22 @@ void Wordle::display() const {
     cout << endl;
 }
 
+void Wordle::showLogo() const {
+    string logo[] = {
+            " __      __                .___.__          ",
+            "/  \\    /  \\___________  __| _/|  |   ____  ",
+            "\\   \\/\\/   /  _ \\_  __ \\/ __ | |  | _/ __ \\ ",
+            " \\        (  <_> )  | \\/ /_/ | |  |_\\  ___/ ",
+            "  \\__/\\  / \\____/|__|  \\____ | |____/\\___  >",
+            "       \\/                   \\/           \\/ ",
+            };
+    system(CLEAR_CMD);
 
+    for (int i = 0; i < 6; i++) {
+        cout <<GREEN << logo[i] << RESET << endl;
+        this_thread::sleep_for(chrono::milliseconds(100));
+    }
+}
 
 void Wordle::start() {
     showRules();

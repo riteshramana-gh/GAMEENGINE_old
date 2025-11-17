@@ -186,6 +186,22 @@ void Minesweeper::checkWin() {
     gameOver = true;
 }
 
+void Minesweeper::showLogo() const {
+    string logo[] = {
+                " ___ ___  ____  ____     ___  _____ __    __    ___    ___  ____    ___  ____  ",
+                "|   T   Tl    j|    \\   /  _]/ ___/|  T__T  T  /  _]  /  _]|    \\  /  _]|    \\ ",
+                "| _   _ | |  T |  _  Y /  [_(   \\_ |  |  |  | /  [_  /  [_ |  o  )/  [_ |  D  )",
+                "|  \\_/  | |  | |  |  |Y    _]\\__  T|  |  |  |Y    _]Y    _]|   _/Y    _]|    / ",
+                "|   |   | |  | |  |  ||   [_ /  \\ |l  `  '  !|   [_ |   [_ |  |  |   [_ |    \\ ",
+                "|   |   | j  l |  |  ||     T\\    | \\      / |     T|     T|  |  |     T|  .  Y",
+                "l___j___j|____jl__j__jl_____j \\___j  \\_/\\_/  l_____jl_____jl__j  l_____jl__j\\_j"
+            };
+    system(CLEAR_CMD);
+    for (int i = 0; i < 7; i++) {
+        cout <<GREEN << logo[i] << RESET << endl;
+        this_thread::sleep_for(chrono::milliseconds(100));
+    }
+}
 
 void Minesweeper::play() {
     while (!gameOver) {

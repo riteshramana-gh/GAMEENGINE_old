@@ -4,11 +4,13 @@
 #include "minesweeper.h"
 #include "tictactoe.h" 
 #include "wordle.h"
+#include "templates.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
 #include <limits>
 #include <string>
+#include <exception>
 using namespace std;
 
 #define RESET   "\033[0m"
@@ -62,6 +64,30 @@ void gameIntro(const string logo[], int size) {
     }
 }
 
+// ...existing code...
+
+// safe input parser: reads a line and converts to int, throws on invalid input
+int readMenuChoice() {
+    string line;
+    if (!getline(cin, line)) {
+        throw runtime_error("Failed to read input");
+    }
+    // if empty because previous >> left newline, read again
+    if (line.size() == 0) {
+        if (!getline(cin, line)) throw runtime_error("Failed to read input");
+    }
+    try {
+        size_t idx = 0;
+        int val = stoi(line, &idx);
+        if (idx != line.size()) throw invalid_argument("Extra characters in input");
+        return val;
+    } catch (const invalid_argument&) {
+        throw invalid_argument("Invalid input. Please enter a number (1-7).");
+    } catch (const out_of_range&) {
+        throw invalid_argument("Number out of range. Please enter a valid choice.");
+    }
+}
+
 void mainMenu() {
     int choice;
     animatedIntro();
@@ -94,35 +120,35 @@ void mainMenu() {
         cout << RED << "     ════════════════════════════════════" << endl;
         cout << "\nEnter choice: " << RESET;
 
-        if (!(cin >> choice)) {
-            cout << RED << "Invalid input. Please enter a number (1-3).\n" << RESET;
-            cin.clear();
+        try {
+            choice = readMenuChoice();
+        } catch (const exception& e) {
+            cout << RED << e.what() << "\n" << RESET;
             this_thread::sleep_for(chrono::seconds(2));
             continue;
         }
 
         if (choice == 1) {
             clearScreen();
-
-            string logo[] = {
-                "██████╗  █████╗ ████████╗████████╗██╗     ███████╗███████╗██╗  ██╗██╗██████╗",
-                "██╔══██╗██╔══██╗╚══██╔══╝╚══██╔══╝██║     ██╔════╝██╔════╝██║  ██║██║██╔══██╗",
-                "██████╔╝███████║   ██║      ██║   ██║     █████╗  ███████╗███████║██║██║  ██║",
-                "██╔══██╗██╔══██║   ██║      ██║   ██║     ██╔══╝  ╚════██║██╔══██║██║██████║",
-                "██║  ██║██║  ██║   ██║      ██║   ███████╗███████╗███████║██║  ██║██║██╔╝",
-                "██████╗╝╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝██╝ ",
-                "╚═════╝                                                              ╚═╝ "
-            };
-            gameIntro(logo, 7);
-
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             string playerName;
             cout << CYAN << "\nEnter your name: " << RESET;
             getline(cin, playerName);
 
-            Game* game = new Battleship(playerName);
-            game->start();
-            delete game;
+            try {
+                auto game = make_game<Battleship>(playerName);
+                try {
+                    game->showLogo();
+                    game->start();
+                } catch (const exception& e) {
+                    delete game;
+                    throw; // handled by outer catch below
+                }
+                delete game;
+            } catch (const exception& e) {
+                cout << RED << "Game error: " << e.what() << RESET << endl;
+                this_thread::sleep_for(chrono::seconds(2));
+            }
 
             cout << "\nReturning to main menu in 3 seconds...\n";
             this_thread::sleep_for(chrono::seconds(3));
@@ -130,52 +156,50 @@ void mainMenu() {
         else if (choice == 2) {
             clearScreen();
 
-            string logo[] = {
-             "   _______  _______  _        _        _______  _______ _________ ___   ",
-             "  (  ____ \\(  ___  )( (    /|( (    /|(  ____ \\(  ____  \\__   __//   )  ",
-             "  | (    \\/| (   ) ||  \\  ( ||  \\  ( || (    \\/| (    \\/   ) (  / /) |  ",
-             "  | |      | |   | ||   \\ | ||   \\ | || (__    | |         | | / (_) (_ ",
-             "  | |      | |   | || (\\ \\) || (\\ \\) ||  __)   | |         | |(____   _)",
-             "  | |      | |   | || | \\   || | \\   || (      | |         | |     ) (  ",
-             "  | (____/\\| (___) || )  \\  || )  \\  || (____/\\| (____/\\   | |     | |  ",
-             "  (_______/(_______)|/    )_)|/    )_)(_______/(_______/   )_(     (_)  "
-            };
-            gameIntro(logo, 8);
-
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             string playerName;
             cout << CYAN << "\nEnter your name: " << RESET;
             getline(cin, playerName);
 
-            Game* game = new Connect4(playerName);
-            game->start();
-            delete game;
+            try {
+                auto game = make_game<Connect4>(playerName)
+                try {
+                    game->showLogo();
+                    game->start();
+                } catch (...) {
+                    delete game;
+                    throw;
+                }
+                delete game;
+            } catch (const exception& e) {
+                cout << RED << "Game error: " << e.what() << RESET << endl;
+                this_thread::sleep_for(chrono::seconds(2));
+            }
 
             cout << "\nReturning to main menu in 3 seconds...\n";
             this_thread::sleep_for(chrono::seconds(3));
         }
         else if (choice == 3) {
             clearScreen();
-
-            string logo[] = {
-                " ___ ___  ____  ____     ___  _____ __    __    ___    ___  ____    ___  ____  ",
-                "|   T   Tl    j|    \\   /  _]/ ___/|  T__T  T  /  _]  /  _]|    \\  /  _]|    \\ ",
-                "| _   _ | |  T |  _  Y /  [_(   \\_ |  |  |  | /  [_  /  [_ |  o  )/  [_ |  D  )",
-                "|  \\_/  | |  | |  |  |Y    _]\\__  T|  |  |  |Y    _]Y    _]|   _/Y    _]|    / ",
-                "|   |   | |  | |  |  ||   [_ /  \\ |l  `  '  !|   [_ |   [_ |  |  |   [_ |    \\ ",
-                "|   |   | j  l |  |  ||     T\\    | \\      / |     T|     T|  |  |     T|  .  Y",
-                "l___j___j|____jl__j__jl_____j \\___j  \\_/\\_/  l_____jl_____jl__j  l_____jl__j\\_j"
-            };
-            gameIntro(logo, 7);
-
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             string playerName;
             cout << CYAN << "\nEnter your name: " << RESET;
             getline(cin, playerName);
 
-            Game* game = new Minesweeper(9, 9, 10, playerName);
-            game->start();
-            delete game;
+            try {
+                auto game = make_game<Minesweeper>(9, 9, 10, playerName);
+                try {
+                    game->showLogo();
+                    game->start();
+                } catch (...) {
+                    delete game;
+                    throw;
+                }
+                delete game;
+            } catch (const exception& e) {
+                cout << RED << "Game error: " << e.what() << RESET << endl;
+                this_thread::sleep_for(chrono::seconds(2));
+            }
 
             cout << "\nReturning to main menu in 3 seconds...\n";
             this_thread::sleep_for(chrono::seconds(3));
@@ -183,46 +207,51 @@ void mainMenu() {
         else if (choice == 4) {
             clearScreen();
 
-            string logo[] = {
-            " __      __                .___.__          ",
-            "/  \\    /  \\___________  __| _/|  |   ____  ",
-            "\\   \\/\\/   /  _ \\_  __ \\/ __ | |  | _/ __ \\ ",
-            " \\        (  <_> )  | \\/ /_/ | |  |_\\  ___/ ",
-            "  \\__/\\  / \\____/|__|  \\____ | |____/\\___  >",
-            "       \\/                   \\/           \\/ ",
-            };
-            gameIntro(logo, 6);
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             string playerName;
             cout << CYAN << "\nEnter your name: " << RESET;
             getline(cin, playerName);
 
-            Game* game = new Wordle(playerName);
-            game->start();
-            delete game;
+            try {
+                auto game = make_game<Wordle>(playerName);
+                try {
+                    game->showLogo();
+                    game->start();
+                } catch (...) {
+                    delete game;
+                    throw;
+                }
+                delete game;
+            } catch (const exception& e) {
+                cout << RED << "Game error: " << e.what() << RESET << endl;
+                this_thread::sleep_for(chrono::seconds(2));
+            }
 
             cout << "\nReturning to main menu in 3 seconds...\n";
             this_thread::sleep_for(chrono::seconds(3));
         }
         else if (choice == 5) {
             clearScreen();
-            string logo[] = {
-            " _______ _______ ______       _______ _______ ______       _______ _______ _______ ",
-            "|_     _|_     _|      |_____|_     _|   _   |      |_____|_     _|       |    ___|",
-            "  |   |  _|   |_|   ---|______||   | |       |   ---|______||   | |   -   |    ___|",
-            "  |___| |_______|______|       |___| |___|___|______|       |___| |_______|_______|",
-
-            };
-            gameIntro(logo, 4);
 
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             string playerName;
             cout << CYAN << "\nEnter your name: " << RESET;
             getline(cin, playerName);
 
-            Game* game = new Tictactoe(playerName);
-            game->start();
-            delete game;
+            try {
+                auto game = make_game<Tictactoe>(playerName);
+                try {
+                    game->showLogo();
+                    game->start();
+                } catch (...) {
+                    delete game;
+                    throw;
+                }
+                delete game;
+            } catch (const exception& e) {
+                cout << RED << "Game error: " << e.what() << RESET << endl;
+                this_thread::sleep_for(chrono::seconds(2));
+            }
 
             cout << "\nReturning to main menu in 3 seconds...\n";
             this_thread::sleep_for(chrono::seconds(3));
@@ -262,6 +291,14 @@ void mainMenu() {
 }
 
 int main() {
-    mainMenu();
+    try {
+        mainMenu();
+    } catch (const exception& e) {
+        cerr << RED << "Fatal error: " << e.what() << RESET << endl;
+        return 1;
+    } catch (...) {
+        cerr << RED << "Unknown fatal error occurred." << RESET << endl;
+        return 2;
+    }
     return 0;
 }

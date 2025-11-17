@@ -177,6 +177,25 @@ int Connect4::getBestMove() {
     return bestCol;
 }
 
+void Connect4::showLogo() const {
+   string logo[] = {
+             "   _______  _______  _        _        _______  _______ _________ ___   ",
+             "  (  ____ \\(  ___  )( (    /|( (    /|(  ____ \\(  ____  \\__   __//   )  ",
+             "  | (    \\/| (   ) ||  \\  ( ||  \\  ( || (    \\/| (    \\/   ) (  / /) |  ",
+             "  | |      | |   | ||   \\ | ||   \\ | || (__    | |         | | / (_) (_ ",
+             "  | |      | |   | || (\\ \\) || (\\ \\) ||  __)   | |         | |(____   _)",
+             "  | |      | |   | || | \\   || | \\   || (      | |         | |     ) (  ",
+             "  | (____/\\| (___) || )  \\  || )  \\  || (____/\\| (____/\\   | |     | |  ",
+             "  (_______/(_______)|/    )_)|/    )_)(_______/(_______/   )_(     (_)  "
+            };
+    system(CLEAR_CMD);
+
+    for (int i = 0; i < 8; i++) {
+        cout <<GREEN << logo[i] << RESET << endl;
+        this_thread::sleep_for(chrono::milliseconds(100));
+    }
+}
+
 void Connect4::start() {
     showRules();
     cout << "Press Enter to continue...";
