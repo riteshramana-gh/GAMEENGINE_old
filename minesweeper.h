@@ -43,6 +43,7 @@ class Minesweeper : public Game {
 public:
     Minesweeper(int r = 9, int c = 9, int m = 10, std::string playerName = "Player");
 
+    void showLogo() const override;
     void showRules() override;
     void start() override;
     void reset() override;

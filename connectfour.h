@@ -36,7 +36,7 @@ public:
     
     Connect4(string playerName = "Player");
 
-    
+    void showLogo() const override;
     void showRules() override;
     void start() override;
     void reset() override;

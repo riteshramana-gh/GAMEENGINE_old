@@ -5,12 +5,6 @@
 #include <string>
 using namespace std;
 
-#ifdef _WIN32
-#define CLEAR "cls"
-#else
-#define CLEAR "clear"
-#endif
-
 #define RESET   "\033[0m"
 #define CYAN    "\033[36m"
 #define GREEN   "\033[32m"
@@ -33,7 +27,7 @@ public:
     
     friend ostream& operator<<(ostream& out, const Game& g);
 
-    
+    virtual void showLogo() const = 0;
     virtual void start() = 0;
     virtual void showRules() = 0;
     virtual void reset() = 0;

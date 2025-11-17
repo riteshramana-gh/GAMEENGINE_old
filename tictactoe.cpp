@@ -170,6 +170,21 @@ void Tictactoe::showRules() {
     cin.get();
 }
 
+void Tictactoe::showLogo() const {
+    string logo[] = {
+                " _______ _______ ______       _______ _______ ______       _______ _______ _______ ",
+                "|_     _|_     _|      |_____|_     _|   _   |      |_____|_     _|       |    ___|",
+                "  |   |  _|   |_|   ---|______||   | |       |   ---|______||   | |   -   |    ___|",
+                "  |___| |_______|______|       |___| |___|___|______|       |___| |_______|_______|",
+
+                };
+    system(CLEAR_CMD);
+
+    for (int i = 0; i < 4; i++) {
+        cout <<GREEN << logo[i] << RESET << endl;
+        this_thread::sleep_for(chrono::milliseconds(100));
+    }
+}
 
 void Tictactoe::start() {
     showRules();

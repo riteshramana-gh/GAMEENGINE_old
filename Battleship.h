@@ -38,7 +38,7 @@ public:
     
     Battleship(std::string playerName = "Player");
 
-    
+    void showLogo() const override;
     void showRules() override;
     void start() override;
     void reset() override;
