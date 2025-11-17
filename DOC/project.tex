@@ -1,0 +1,1686 @@
+% main.tex - Multi-Game Engine Full Detailed Report (Sections 1-5 + deep examples)
+\documentclass[12pt,a4paper]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{color}
+\usepackage{longtable}
+\usepackage{titlesec}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{pdfpages}
+\usetikzlibrary{shadows, positioning, shapes.multipart, shapes}
+\usepackage{pdflscape}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{minted} % if Overleaf supports -- fallback to listings if not
+\geometry{margin=1in}
+
+% If Overleaf plan doesn't allow minted, change to listings by replacing minted blocks.
+% For safety, we will primarily use listings (below). If you want minted replace listings.
+
+% ---- PAGE STYLE ----
+\fancyhf{}
+\rhead{\small CS24B1092 -- john}
+\lhead{\small Multi-Game Engine - OOPS}
+\cfoot{\thepage}
+
+% ---- SECTION FORMATTING ----
+\titleformat{\section}{\Large\bfseries\color{teal}}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries\color{blue}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{black}}{\thesubsubsection}{1em}{}
+
+% ---- LISTINGS (C++) ----
+\definecolor{codebg}{rgb}{0.97,0.97,0.98}
+\definecolor{kw}{rgb}{0.0,0.0,0.6}
+\definecolor{str}{rgb}{0.64,0.0,0.0}
+\definecolor{com}{rgb}{0.13,0.55,0.13}
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{kw}\bfseries,
+  commentstyle=\color{com}\itshape,
+  stringstyle=\color{str},
+  frame=single,
+  breaklines=true,
+  numbers=left,
+  numberstyle=\tiny,
+  xleftmargin=2em,
+  xrightmargin=1em,
+  tabsize=2,
+  showstringspaces=false
+}
+
+% ---- TITLE ----
+\title{\bfseries Multi-Game Engine \\ \large A C++ Object-Oriented Project — Detailed Report}
+\author{
+Lohith (CS24B1015) \\
+Ritesh (CS24B1043) \\
+Mahesh (CS24B1071) \\
+Sri Saran (CS24B1076) \\
+Pranav (CS24B1092)
+}
+\date{November 2025}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\clearpage
+\setstretch{1.2}
+\tableofcontents
+\clearpage
+
+% =================================================================
+\section{Introduction (Overview \& Objectives)}
+
+\subsection{Overview}
+The \textbf{Multi-Game Engine} is a modular C++ console application that integrates the following classic games: \textit{Battleship}, \textit{Connect Four}, \textit{Minesweeper}, \textit{Wordle}, and \textit{Tic-Tac-Toe}. The intent is twofold:
+\begin{enumerate}
+  \item Provide a single, extendable architecture to host multiple games using OOP best practices.
+  \item Demonstrate advanced programming concepts (AI algorithms, persistent I/O, operator overloading, and software architecture) with practical, working code.
+\end{enumerate}
+
+All games inherit from an abstract base class \texttt{Game} that specifies a minimal common interface:
+\texttt{start()}, \texttt{display()}, \texttt{showRules()}, \texttt{showLogo()} and \texttt{reset()}. This design allows the main menu and engine to create, run, and dispose of any supported game uniformly using a \texttt{Game*} pointer.
+
+\subsection{Objectives}
+\begin{itemize}[leftmargin=*,itemsep=4pt]
+  \item Implement a unified polymorphic framework for multiple games.
+  \item Apply OOP principles: encapsulation, abstraction, inheritance, polymorphism, and operator overloading in real code.
+  \item Integrate intelligent gameplay using Minimax (with alpha-beta pruning), recursive flood-fill, and heuristic AI (hunt-and-target).
+  \item Provide persistent leaderboards that can be merged and displayed.
+\end{itemize}
+% ===========================================
+\section{Object-Oriented Programming Features Used}
+\subsection{Minesweeper}
+
+This section analyzes how the \textbf{Minesweeper} module applies each of the five core OOP principles — \textbf{Encapsulation, Abstraction, Inheritance, Polymorphism, and Operator Overloading}.  
+The implementation spans two files: \texttt{Minesweeper.h} and \texttt{Minesweeper.cpp}.  
+
+% -------------------------------------------------
+\subsubsection{Encapsulation}
+
+Encapsulation is demonstrated primarily through the \texttt{Cell} class, which acts as an internal data model for each tile of the Minesweeper board.  
+It hides its internal state using private data members and exposes only safe public functions.
+
+\begin{lstlisting}[language=C++]
+class Cell {
+    bool mine;
+    bool revealed;
+    bool flagged;
+    int adjacentMines;
+
+public:
+    Cell();
+    void setMine();
+    bool isMine() const;
+    bool isRevealed() const;
+    bool isFlagged() const;
+    void toggleFlag();
+    void reveal();
+    void setAdjacent(int n);
+    int getAdjacent() const;
+    char displayChar() const;
+};
+\end{lstlisting}
+
+Encapsulation ensures that invalid states (e.g., revealing a flagged cell) are prevented inside the class logic:
+\begin{lstlisting}[language=C++]
+void Cell::reveal() { 
+    if (!flagged) revealed = true; 
+}
+void Cell::toggleFlag() { 
+    if (!revealed) flagged = !flagged; 
+}
+\end{lstlisting}
+
+Additionally, the \texttt{Minesweeper} class encapsulates the game state, such as grid data and player progress:
+\begin{lstlisting}[language=C++]
+class Minesweeper : public Game {
+    int rows, cols, mines;
+    std::vector<std::vector<Cell>> grid;
+    int cursorX, cursorY;
+    bool gameOver;
+    bool win;
+    ...
+};
+\end{lstlisting}
+
+---
+
+\subsubsection{Abstraction}
+
+Abstraction in Minesweeper occurs through its inheritance from the abstract base class \texttt{Game}.  
+This allows a high-level interface shared among all games.
+
+\begin{lstlisting}[language=C++]
+class Game {
+protected:
+    string gameName;
+    Player player;
+
+public:
+    virtual void showLogo() const = 0;
+    virtual void display() const = 0;
+    virtual void start() = 0;
+    virtual void showRules() = 0;
+    virtual void reset() = 0;
+};
+\end{lstlisting}
+
+Minesweeper provides concrete implementations for these abstract methods:
+\begin{lstlisting}[language=C++]
+
+void Minesweeper::display() const override { ... }
+void Minesweeper::showLogo() const override { ... }
+void Minesweeper::showRules() override { ... }
+void Minesweeper::start() override { ... }
+void Minesweeper::reset() override { ... }
+\end{lstlisting}
+
+\paragraph{Effect:}
+This abstraction allows the game engine to treat all games uniformly:
+\begin{lstlisting}[language=C++]
+auto 
+\end{lstlisting}
+
+
+\subsubsection{Inheritance}
+
+Minesweeper inherits from the \texttt{Game} class, which provides fundamental attributes (\texttt{player}, \texttt{gameName}) and a virtual interface.
+
+\begin{lstlisting}[language=C++]
+class Minesweeper : public Game {
+public:
+    Minesweeper(int r=9,int c=9,int m=10,string playerName="Player");
+    void showRules() override;
+    void start() override;
+    void reset() override;
+    void display() const override;
+};
+\end{lstlisting}
+
+\paragraph{Explanation:}
+\begin{itemize}
+  \item This enables code reuse — every new game automatically has \texttt{player} and \texttt{gameName}.
+  \item The \texttt{Game} constructor is invoked through the derived constructor:
+\begin{lstlisting}[language=C++]
+Minesweeper::Minesweeper(int r,int c,int m,string playerName)
+    : Game("Minesweeper", playerName, 0), rows(r), cols(c), mines(m) {
+    placeMines();
+    calculateAdjacency();
+}
+\end{lstlisting}
+\end{itemize}
+
+---
+
+\subsubsection{Polymorphism}
+
+Minesweeper overrides multiple virtual methods from \texttt{Game}, enabling polymorphic behavior at runtime.
+
+\begin{lstlisting}[language=C++]
+void Minesweeper::showLogo() const { ... }
+void Minesweeper::display() const { ... }
+void Minesweeper::start() { ... }
+void Minesweeper::showRules() { ... }
+void Minesweeper::reset() { ... }
+\end{lstlisting}
+
+When accessed through a \texttt{Game*} pointer, the appropriate overridden version of each method executes automatically due to polymorphism. For example:
+
+\begin{lstlisting}[language=C++]
+// Factory function to create a game instance and initialize it
+// Returns std::unique_ptr<GameT>
+template<typename GameT, typename... Args>
+std::unique_ptr<GameT> make_game(Args&&... args) {
+    return std::make_unique<GameT>(std::forward<Args>(args)...);
+}
+
+// Usage:
+auto game = make_game<Minesweeper>(9, 9, 10, playerName); // Game is initialized here
+game->showLogo();  // Calls Minesweeper::showLogo()
+game->start();     // Calls Minesweeper::start()
+\end{lstlisting}
+
+Here, \texttt{make\_game} dynamically allocates and initializes a game object of the requested type. The returned \texttt{std::unique\_ptr<GameT>} ensures proper memory management, while the pointer type \texttt{Game*} allows the correct overridden methods to be called at runtime.
+
+
+Additionally, polymorphism is used with the overloaded \texttt{operator<<} for \texttt{Game}:
+\begin{lstlisting}[language=C++]
+ostream& operator<<(ostream& out, const Game& g) {
+    g.display(); // Polymorphic call
+    return out;
+}
+\end{lstlisting}
+
+
+---
+
+\subsubsection{Operator Overloading}
+
+Minesweeper leverages operator overloading indirectly via the \texttt{Player} and \texttt{Leaderboard} classes.
+
+\textbf{Player Overload:}
+\begin{lstlisting}[language=C++]
+Player& operator+=(int points) {
+    score += points;
+    return *this;
+}
+\end{lstlisting}
+
+\textbf{Leaderboard Overload:}
+\begin{lstlisting}[language=C++]
+Leaderboard& operator+(const Player& p) {
+    players.push_back(p);
+    sortByScore();
+    save();
+    return *this;
+}
+
+ostream& operator<<(ostream& out, const Leaderboard& lb) {
+    for (auto& p : lb.players)
+        out << p.name << " - " << p.score << "\n";
+    return out;
+}
+\end{lstlisting}
+
+\textbf{Usage inside Minesweeper:}
+\begin{lstlisting}[language=C++]
+if (win) player += 50;
+Leaderboard lb(gameName);
+lb = lb + player;
+cout << lb;  // Displays leaderboard via operator<<
+\end{lstlisting}
+
+---
+
+\subsubsection{Additional OOP Aspects in Minesweeper}
+
+\paragraph{Composition:}
+The \texttt{Minesweeper} class contains a 2D vector of \texttt{Cell} objects, representing a composition relationship:
+\begin{lstlisting}[language=C++]
+std::vector<std::vector<Cell>> grid;
+\end{lstlisting}
+Each \texttt{Cell} object belongs exclusively to a specific \texttt{Minesweeper} instance — when the game object is destroyed, the cells are destroyed too.
+
+\paragraph{Recursion and Algorithmic Design:}
+Minesweeper’s \texttt{floodReveal()} demonstrates recursive logic to propagate reveal operations:
+\begin{lstlisting}[language=C++]
+void Minesweeper::floodReveal(int x, int y) {
+    for (int dx=-1; dx<=1; ++dx)
+        for (int dy=-1; dy<=1; ++dy) {
+            int nx = x + dx, ny = y + dy;
+            if (nx>=0 && nx<rows && ny>=0 && ny<cols) {
+                Cell& n = grid[nx][ny];
+                if (!n.isRevealed() && !n.isMine()) {
+                    n.reveal();
+                    if (n.getAdjacent() == 0) floodReveal(nx, ny);
+                }
+            }
+        }
+}
+\end{lstlisting}
+% ===============================================
+\subsection{Battleship}
+The \textbf{Battleship} module showcases a strong integration of OOP principles while implementing a classic naval combat game.  
+It uses inheritance from the abstract \texttt{Game} class, encapsulates game data using private grids, and employs polymorphism and operator overloading through integration with the \texttt{Leaderboard} and \texttt{Player} classes.
+
+% -------------------------------------------------
+\subsubsection{Encapsulation}
+
+Encapsulation is evident in how the Battleship class hides all the board data and internal logic from the rest of the program.  
+Critical data such as ship placement, grids, and AI state are kept private, ensuring the internal game mechanics cannot be modified directly.
+
+\begin{lstlisting}[language=C++]
+class Battleship : public Game {
+private:
+    std::string playerGrid[5][5];
+    std::string aiGrid[5][5];
+    std::string aiView[5][5];
+    bool playerShips[5][5];
+    bool aiShips[5][5];
+    int size;
+
+    struct Coord { int r, c; };
+    std::vector<int> shipSizes = {2, 3, 3, 4};
+    std::vector<Coord> aiHits;
+    ...
+};
+\end{lstlisting}
+
+\subsubsection{Abstraction}
+
+Abstraction is realized through inheritance from the abstract class \texttt{Game}, which defines a generic interface for all games.
+
+\begin{lstlisting}[language=C++]
+class Game {
+protected:
+    string gameName;
+    Player player;
+public:
+    virtual void showLogo() const = 0;
+    virtual void display() const = 0;
+    virtual void start() = 0;
+    virtual void showRules() = 0;
+    virtual void reset() = 0;
+};
+\end{lstlisting}
+
+Battleship provides concrete implementations:
+\begin{lstlisting}[language=C++]
+void Battleship::showRules() override { ... }
+void Battleship::showLogo() override { ... }
+void Battleship::start() override { ... }
+void Battleship::reset() override { ... }
+void Battleship::display() const override { drawBoardsSideBySide(); }
+\end{lstlisting}
+
+\paragraph{Effect:}
+The main engine can launch any game polymorphically:
+\begin{lstlisting}[language=C++]
+auto game = make_game<Battleship>(playerName);
+game->showLogo();
+game->start();
+\end{lstlisting}
+
+This abstraction hides the internal logic of ship placement, grid drawing, and AI behavior from the main control flow.
+
+---
+
+\subsubsection{Inheritance}
+
+\texttt{Battleship} inherits from \texttt{Game} and overrides all abstract methods. It also extends functionality with its own helper structures and logic.
+
+\begin{lstlisting}[language=C++]
+class Battleship : public Game {
+public:
+    Battleship(std::string playerName = "Player");
+    void showRules() override;
+    void showLogo() override;
+    void start() override;
+    void reset() override;
+    void display() const override;
+};
+\end{lstlisting}
+\subsubsection{Polymorphism}
+
+Polymorphism enables runtime behavior adaptation through virtual function overriding.
+
+\begin{lstlisting}[language=C++]
+void Battleship::display() const {
+    drawBoardsSideBySide();
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=C++]
+Game* game = new Battleship();
+game->display();  // Calls Battleship::display()
+\end{lstlisting}
+
+\textbf{Friend operator polymorphism:}
+The \texttt{Game} class overloads the \texttt{operator<<} to call \texttt{display()} polymorphically.
+
+\begin{lstlisting}[language=C++]
+ostream& operator<<(ostream& out, const Game& g) {
+    g.display();  // Resolved to Battleship::display()
+    return out;
+}
+\end{lstlisting}
+
+Hence:
+\begin{lstlisting}[language=C++]
+Battleship b("john");
+cout << b;   // Invokes polymorphic display through operator<<
+\end{lstlisting}
+
+---
+
+\subsubsection{Operator Overloading}
+
+Operator overloading is indirectly used through integration with \texttt{Player} and \texttt{Leaderboard}.  
+When the player wins or scores, the overloaded operators simplify score management.
+
+\textbf{Player Overload:}
+\begin{lstlisting}[language=C++]
+Player& operator+=(int points) {
+    score += points;
+    return *this;
+}
+\end{lstlisting}
+
+\textbf{Leaderboard Overload:}
+\begin{lstlisting}[language=C++]
+Leaderboard& operator+(const Player& p);
+ostream& operator<<(ostream& out, const Leaderboard& lb);
+\end{lstlisting}
+
+\textbf{Usage within Battleship:}
+\begin{lstlisting}[language=C++]
+if (allAIShipsSunk()) {
+    player += 50;
+    Leaderboard lb(gameName);
+    lb = lb + player;
+    cout << lb;
+}
+\end{lstlisting}
+
+This approach makes scoring concise and readable, maintaining the OOP design’s clarity.
+
+---
+
+\subsubsection{Algorithmic Design and AI Logic}
+
+Battleship’s AI uses a \textbf{heuristic targeting system}: a simple but effective strategy that remembers previous hits and expands along that axis to find adjacent ship parts.
+
+\begin{lstlisting}[language=C++]
+void Battleship::aiTurn() {
+    static Coord lastHit{-1, -1};
+    static Coord direction{0, 0};
+    static bool axisLocked = false;
+
+    if (axisLocked && lastHit.r != -1) {
+        int nr = lastHit.r + direction.r;
+        int nc = lastHit.c + direction.c;
+        ...
+    } else {
+        // Random target selection
+        vector<Coord> cells;
+        for (int r = 0; r < size; ++r)
+            for (int c = 0; c < size; ++c)
+                if (playerGrid[r][c] == "~" || playerGrid[r][c] == "��")
+                    cells.push_back({r, c});
+        shuffle(cells.begin(), cells.end(), mt19937(time(nullptr)));
+        target = cells.front();
+    }
+}
+\end{lstlisting}
+
+\paragraph{Explanation:}
+\begin{itemize}
+  \item If a previous hit is known, the AI tries adjacent tiles in the same direction.
+  \item If a ship part is hit again, the AI “locks” onto that axis and continues along it.
+  \item If the guess fails, the AI reverts to random selection.
+  \item This mimics real heuristic targeting — a primitive AI pattern recognition behavior.
+\end{itemize}
+% ===========================================
+\subsection{Wordle}
+
+The \textbf{Wordle} module demonstrates strong application of OOP principles such as encapsulation, abstraction, inheritance, polymorphism, and operator overloading.  
+This implementation brings to life the popular word-guessing game, combining string manipulation, logic validation, and leaderboard integration.
+
+% -------------------------------------------------
+\subsubsection{Encapsulation}
+
+Encapsulation is primarily visible in the management of game state through private data members of the \texttt{Wordle} class.  
+These members cannot be accessed directly outside the class — only through controlled methods.
+
+\begin{lstlisting}[language=C++]
+class Wordle : public Game {
+private:
+    std::string secretWord;
+    std::vector<std::string> guesses;
+    const int WORD_LENGTH = 5;
+    const int MAX_ATTEMPTS = 6;
+    bool gameOver;
+
+    std::string toUpper(std::string s) const;
+    void generateSecret();
+public:
+    Wordle(std::string playerName = "Player");
+    void showRules() override;
+    void showLogo() override;
+    void start() override;
+    void reset() override;
+    void display() const override;
+};
+\end{lstlisting}
+
+\paragraph{Explanation:}
+\begin{itemize}
+  \item \texttt{secretWord} is generated privately by \texttt{generateSecret()} and never exposed to the player.
+  \item \texttt{guesses} stores user attempts internally.
+  \item Access to these members is mediated by functions such as \texttt{display()} and \texttt{start()}.
+\end{itemize}
+
+Example of safe state management:
+\begin{lstlisting}[language=C++]
+void Wordle::reset() {
+    srand(time(nullptr));
+    generateSecret();
+    guesses.clear();
+    gameOver = false;
+}
+\end{lstlisting}
+This method reinitializes all relevant variables, preventing data leakage from previous games.
+
+---
+
+\subsubsection{Abstraction}
+
+Abstraction is achieved by hiding complex behavior (such as random word generation, input validation, and display rendering) behind simple, meaningful interfaces.
+
+\begin{lstlisting}[language=C++]
+void Wordle::generateSecret() {
+    vector<string> words;
+    ifstream file("wordle.txt");
+    if (file.is_open()) {
+        string word;
+        while (file >> word) {
+            transform(word.begin(), word.end(), word.begin(), ::toupper);
+            if (word.size() == WORD_LENGTH)
+                words.push_back(word);
+        }
+        file.close();
+    }
+    secretWord = words[rand() % words.size()];
+}
+\end{lstlisting}
+
+\paragraph{How abstraction helps:}
+\begin{itemize}
+  \item The rest of the program doesn’t need to know how the secret word is chosen — only that it is available for gameplay.
+  \item The \texttt{toUpper()} function abstracts case conversion logic.
+  \item The abstract base class \texttt{Game} defines the methods \texttt{display()}, \texttt{start()}, \texttt{showRules()}, and \texttt{reset()}, which Wordle must override.
+\end{itemize}
+
+---
+
+\subsubsection{Inheritance}
+
+Wordle inherits directly from the abstract class \texttt{Game}, sharing common members and methods with other games such as \texttt{player}, \texttt{gameName}, and scoring behavior.
+
+\begin{lstlisting}[language=C++]
+class Wordle : public Game {
+    ...
+};
+
+Wordle::Wordle(string playerName)
+    : Game("Wordle", playerName, 0), gameOver(false) {
+    reset();
+}
+\end{lstlisting}
+
+\paragraph{Overridden functions}
+:
+\begin{lstlisting}[language=C++]
+void showRules() override;
+void showLogo() override;
+void start() override;
+void reset() override;
+void display() const override;
+\end{lstlisting}
+\subsubsection{Polymorphism}
+
+Polymorphism allows Wordle to be executed dynamically via a base class pointer or reference.  
+The actual version of a function that runs is decided at runtime based on the object type.
+
+\textbf{Dynamic dispatch example:}
+\begin{lstlisting}[language=C++]
+auto game = make_game<Wordle>(playerName);
+game->showLogo();
+game->start();
+\end{lstlisting}
+
+\paragraph{Polymorphic operator example:}
+The \texttt{Game} base class overloads the \texttt{operator<<} to call the virtual \texttt{display()}:
+\begin{lstlisting}[language=C++]
+ostream& operator<<(ostream& out, const Game& g) {
+    g.display();  // Virtual dispatch to Wordle::display()
+    return out;
+}
+\end{lstlisting}
+
+This enables:
+\begin{lstlisting}[language=C++]
+Game* g = new Wordle();
+cout << *g; // Calls Wordle::display() polymorphically
+\end{lstlisting}
+
+
+\subsubsection{Operator Overloading}
+
+Although Wordle itself does not define any new operators, it uses operator overloading provided by the \texttt{Player} and \texttt{Leaderboard} classes to manage scoring and leaderboard updates.
+
+\textbf{Player class:}
+\begin{lstlisting}[language=C++]
+Player& operator+=(int points) {
+    score += points;
+    return *this;
+}
+\end{lstlisting}
+
+\textbf{Leaderboard class:}
+\begin{lstlisting}[language=C++]
+Leaderboard& operator+(const Player& p);
+ostream& operator<<(ostream& out, const Leaderboard& lb);
+\end{lstlisting}
+
+\textbf{Usage in Wordle:}
+\begin{lstlisting}[language=C++]
+if (guess == secretWord) {
+    display();
+    cout << GREEN << "\n�� You guessed the word!" << RESET << endl;
+    player += 50;
+    Leaderboard lb(gameName);
+    lb = lb + player;
+    cout << lb;
+}
+\end{lstlisting}
+This makes score handling concise and elegant, following the operator overloading principle for intuitive syntax.
+
+---
+
+\subsubsection{Algorithmic Logic}
+
+Wordle implements simple but effective string comparison logic and uses color-coded feedback to guide the player.  
+The following snippet highlights color feedback logic:
+
+\begin{lstlisting}[language=C++]
+for (int j = 0; j < WORD_LENGTH; ++j) {
+    char g = guess[j];
+    if (g == secretWord[j])
+        cout << GREEN <<" "<< g << " " << RESET;
+    else if (secretWord.find(g) != string::npos)
+        cout << YELLOW <<" "<< g << " " << RESET;
+    else
+        cout << GRAY <<" "<< g << " " << RESET;
+}
+\end{lstlisting}
+
+\paragraph{Explanation:}
+\begin{itemize}
+  \item Exact matches (correct letter + position) print in green.
+  \item Partial matches (correct letter, wrong position) print in yellow.
+  \item Incorrect letters print in gray.
+\end{itemize}
+
+This logic demonstrates basic algorithmic control flow and string searching, integral to Wordle’s gameplay.
+% ===========================================
+\subsection{TicTacToe}
+
+The \textbf{TicTacToe} module represents a classic example of OOP-driven design applied to an artificial intelligence-based game.  
+This game applies the five pillars of Object-Oriented Programming — encapsulation, abstraction, inheritance, polymorphism, and operator overloading — alongside an optimized \texttt{Minimax} algorithm for the computer opponent.
+
+% -------------------------------------------------
+\subsubsection{Encapsulation}
+
+Encapsulation in \texttt{TicTacToe} is achieved through the private storage of the game’s board state and logic-specific methods.  
+All manipulations of the board are handled internally, ensuring that gameplay integrity cannot be compromised by external access.
+
+\begin{lstlisting}[language=C++]
+class Tictactoe : public Game {
+private:
+    char board[3][3];
+    char playerMark, aiMark;
+    bool gameOver;
+
+    void drawBoard() const;
+    bool isMovesLeft() const;
+    int evaluate() const;
+    int minimax(bool isMax);
+    std::pair<int, int> findBestMove();
+    void makeMove(int r, int c, char mark);
+    bool checkWin(char mark) const;
+    bool checkDraw() const;
+
+public:
+    Tictactoe(std::string playerName = "Player");
+    void showRules() override;
+    void showLogo() override;
+    void start() override;
+    void reset() override;
+    void display() const override;
+};
+\end{lstlisting}
+
+
+
+\subsubsection{Abstraction}
+
+The \texttt{Game} base class defines a generalized game interface.  
+\texttt{TicTacToe} abstracts away implementation details behind high-level functions such as \texttt{display()} and \texttt{start()}, which the player interacts with.
+
+\begin{lstlisting}[language=C++]
+class Game {
+protected:
+    string gameName;
+    Player player;
+
+public:
+    virtual void display() const = 0;
+    virtual void showLogo() const = 0;
+    virtual void start() = 0;
+    virtual void showRules() = 0;
+    virtual void reset() = 0;
+};
+\end{lstlisting}
+
+TicTacToe provides its own specific behavior while following the same interface:
+\begin{lstlisting}[language=C++]
+void Tictactoe::showRules() override { ... }
+void Tictactoe::display() const override { drawBoard(); }
+void Tictactoe::reset() override { ... }
+void Tictactoe::showLogo() override { ... }
+void Tictactoe::start() override { ... }
+\end{lstlisting}
+
+\paragraph{Effect:}
+This abstraction ensures that the game engine can treat all games in a unified way.
+
+\begin{lstlisting}[language=C++]
+auto game = make_game<Tictactoe>(playerName);
+game->showLogo();
+game->start();
+\end{lstlisting}
+
+---
+
+\subsubsection{Inheritance}
+
+The inheritance hierarchy of the project allows \texttt{TicTacToe} to reuse core attributes and behaviors of the \texttt{Game} base class, such as the \texttt{player} object and scoring system.
+
+\begin{lstlisting}[language=C++]
+class Tictactoe : public Game {
+public:
+    Tictactoe(std::string playerName = "Player");
+    ...
+};
+\end{lstlisting}
+
+Constructor initialization illustrates direct base class invocation:
+\begin{lstlisting}[language=C++]
+Tictactoe::Tictactoe(string playerName)
+    : Game("TicTacToe", playerName, 0), playerMark('X'), aiMark('O'), gameOver(false) {
+    reset();
+}
+\end{lstlisting}
+
+\paragraph{Explanation:}
+\begin{itemize}
+  \item \texttt{Game} provides reusable data: player name, game title, and score.
+  \item Derived class \texttt{Tictactoe} extends it with unique attributes (board, AI mark).
+\end{itemize}
+
+---
+
+\subsubsection{Polymorphism}
+
+\textbf{Virtual functions} enable runtime polymorphism, allowing the main engine to execute the correct version of \texttt{display()}, \texttt{start()}, or \texttt{showRules()} depending on the active game.
+
+\begin{lstlisting}[language=C++]
+Game* g = new Tictactoe();
+g->display(); // Calls Tictactoe::display() dynamically
+\end{lstlisting}
+
+\paragraph{Operator-level polymorphism:}
+Through the friend operator in \texttt{Game}, the output stream operation becomes polymorphic as well:
+
+\begin{lstlisting}[language=C++]
+ostream& operator<<(ostream& out, const Game& g) {
+    g.display();  // Executes Tictactoe::display() at runtime
+    return out;
+}
+\end{lstlisting}
+
+Usage:
+\begin{lstlisting}[language=C++]
+Tictactoe t("john");
+cout << t;  // Invokes Tictactoe::display()
+\end{lstlisting}
+
+---
+
+\subsubsection{Operator Overloading}
+
+While TicTacToe does not overload operators internally, it leverages the overloaded operators defined in the \texttt{Player} and \texttt{Leaderboard} classes to handle scoring and leaderboard display.
+
+\textbf{Player Overload:}
+\begin{lstlisting}[language=C++]
+Player& operator+=(int points) {
+    score += points;
+    return *this;
+}
+\end{lstlisting}
+
+\textbf{Leaderboard Overload:}
+\begin{lstlisting}[language=C++]
+Leaderboard& operator+(const Player& p);
+ostream& operator<<(ostream& out, const Leaderboard& lb);
+\end{lstlisting}
+
+\textbf{Usage within TicTacToe:}
+\begin{lstlisting}[language=C++]
+if (checkWin(playerMark)) {
+    player += 50;
+    Leaderboard lb("TicTacToe");
+    lb = lb + player;
+    cout << lb;
+}
+\end{lstlisting}
+
+---
+
+\subsubsection{AI Algorithm: The Minimax Function}
+
+The \texttt{minimax()} function implements a recursive decision-making algorithm that allows the AI to play optimally.  
+It simulates all possible future moves and selects the one that maximizes its chance of winning.
+
+\begin{lstlisting}[language=C++]
+int Tictactoe::minimax(bool isMax) {
+    int score = evaluate();
+    if (score == 10 || score == -10) return score;
+    if (!isMovesLeft()) return 0;
+
+    if (isMax) {
+        int best = -1000;
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 3; ++j)
+                if (board[i][j] == ' ') {
+                    board[i][j] = aiMark;
+                    best = max(best, minimax(false));
+                    board[i][j] = ' ';
+                }
+        return best;
+    } else {
+        int best = 1000;
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 3; ++j)
+                if (board[i][j] == ' ') {
+                    board[i][j] = playerMark;
+                    best = min(best, minimax(true));
+                    board[i][j] = ' ';
+                }
+        return best;
+    }
+}
+\end{lstlisting}
+
+\paragraph{Explanation:}
+\begin{itemize}
+  \item The AI (\texttt{isMax}) seeks to maximize its score (+10 for winning).
+  \item The player’s moves minimize the AI’s potential gain.
+  \item The recursion continues until a terminal state (win/loss/draw) is reached.
+  \item This guarantees an unbeatable AI under normal conditions.
+\end{itemize}
+% ===========================================
+\subsection{Connect4}
+
+The \textbf{Connect4} module implements an AI-driven version of the classic “Four in a Row” game using Object-Oriented Programming principles.  
+This module demonstrates sophisticated OOP integration with algorithmic depth, encapsulating board logic, heuristic evaluation, and AI decision-making via the Minimax algorithm with Alpha-Beta pruning.
+
+% -------------------------------------------------
+\subsubsection{Encapsulation}
+
+Encapsulation is maintained by restricting all board data and gameplay logic within the class’s private scope.  
+No external component can manipulate the board or AI behavior directly.
+
+\begin{lstlisting}[language=C++]
+class Connect4 : public Game {
+private:
+    static const int ROWS = 6;
+    static const int COLS = 7;
+    vector<vector<char>> board;
+    char currentPlayer;
+
+    void drawBoard() const;
+    bool makeMove(int col);
+    void switchPlayer();
+    bool checkWin(char s) const;
+    bool checkDraw() const;
+    void resetBoard();
+    int evaluateBoard() const;
+    int minimax(int depth, bool isMaximizing, int alpha, int beta);
+    int getBestMove();
+
+public:
+    Connect4(string playerName = "Player");
+    void showRules() override;
+    void showLogo() override;
+    void start() override;
+    void reset() override;
+    void display() const override;
+};
+\end{lstlisting}
+
+
+\subsubsection{Abstraction}
+
+Abstraction simplifies complex gameplay and AI mechanisms through a clear, minimal interface.  
+Users interact through simple commands like \texttt{start()} and \texttt{display()} without seeing the underlying logic.
+
+\begin{lstlisting}[language=C++]
+void Connect4::start() {
+    showRules();
+    while (true) {
+        cout << *this;  // Uses polymorphic display
+        if (currentPlayer == 'X') {
+            int col;
+            cout << "Choose a column (0-6): ";
+            cin >> col;
+            if (!makeMove(col)) continue;
+        } else {
+            int aiCol = getBestMove();
+            makeMove(aiCol);
+        }
+        ...
+    }
+}
+\end{lstlisting}
+
+\paragraph{How abstraction works:}
+\begin{itemize}
+  \item Complex procedures (AI decisions, evaluation, validation) are hidden behind clear-named functions.  
+  \item Player interaction remains intuitive, while algorithmic and game-state details stay internal.  
+  \item The abstract base \texttt{Game} class provides a uniform interface across all games.
+\end{itemize}
+
+---
+
+\subsubsection{Inheritance}
+
+\texttt{Connect4} inherits from \texttt{Game}, extending its abstract structure.  
+This allows polymorphic integration within the multi-game engine.
+
+\begin{lstlisting}[language=C++]
+Connect4::Connect4(string playerName)
+    : Game("Connect4", playerName, 0), currentPlayer('X') {
+    reset();
+}
+\end{lstlisting}
+
+\paragraph{Inherited Elements:}
+\begin{itemize}
+  \item \texttt{gameName} (from Game): identifies the game type for leaderboard integration.  
+  \item \texttt{player} (from Game): reused for consistent scoring and player data.  
+  \item Abstract methods (\texttt{display}, \texttt{showRules}, etc.) overridden to fit Connect4’s logic.  
+\end{itemize}
+
+\paragraph{Overridden Methods}
+:
+\begin{lstlisting}[language=C++]
+void showRules() override;
+void showLogo() override;
+void start() override;
+void reset() override;
+void display() const override;
+\end{lstlisting}
+
+---
+
+\subsubsection{Polymorphism}
+
+Polymorphism is demonstrated through runtime method binding, allowing the same function call to behave differently depending on the game type.
+
+\begin{lstlisting}[language=C++]
+auto game = make_game<Connect4>(playerName);
+game->showLogo();
+game->start();
+\end{lstlisting}
+
+\textbf{Polymorphic operator:}
+The friend operator in \texttt{Game} leverages dynamic dispatch to display Connect4’s board automatically:
+
+\begin{lstlisting}[language=C++]
+ostream& operator<<(ostream& out, const Game& g) {
+    g.display();  // Polymorphically calls Connect4::display()
+    return out;
+}
+\end{lstlisting}
+
+---
+
+\subsubsection{Operator Overloading}
+
+Although Connect4 does not define new operators, it uses the overloaded operators from \texttt{Player} and \texttt{Leaderboard} for score management and display.
+
+\begin{lstlisting}[language=C++]
+if (checkWin(currentPlayer)) {
+    if (currentPlayer == 'X') {
+        player += 50;
+    }
+    Leaderboard lb(gameName);
+    lb = lb + player;
+    cout << lb;
+}
+\end{lstlisting}
+
+Here:
+\begin{itemize}
+  \item \texttt{operator+=} in \texttt{Player} updates the score.  
+  \item \texttt{operator+} and \texttt{operator<<} in \texttt{Leaderboard} handle score addition and formatted output.  
+\end{itemize}
+
+---
+
+\subsubsection{AI Algorithm — Minimax with Alpha–Beta Pruning}
+
+The Connect4 AI employs a \textbf{recursive minimax algorithm with alpha–beta pruning}, optimizing its decision-making while reducing unnecessary computations.
+
+\begin{lstlisting}[language=C++]
+int Connect4::minimax(int depth, bool isMaximizing, int alpha, int beta) {
+    int eval = evaluateBoard();
+    if (depth == 0 || eval != 0 || checkDraw()) return eval;
+
+    if (isMaximizing) {
+        int maxEval = -1e9;
+        for (int c = 0; c < COLS; ++c) {
+            for (int r = ROWS - 1; r >= 0; --r) {
+                if (board[r][c] == '.') {
+                    board[r][c] = 'O';
+                    int score = minimax(depth - 1, false, alpha, beta);
+                    board[r][c] = '.';
+                    maxEval = max(maxEval, score);
+                    alpha = max(alpha, score);
+                    if (beta <= alpha) return maxEval;
+                    break;
+                }
+            }
+        }
+        return maxEval;
+    } else {
+        int minEval = 1e9;
+        for (int c = 0; c < COLS; ++c) {
+            for (int r = ROWS - 1; r >= 0; --r) {
+                if (board[r][c] == '.') {
+                    board[r][c] = 'X';
+                    int score = minimax(depth - 1, true, alpha, beta);
+                    board[r][c] = '.';
+                    minEval = min(minEval, score);
+                    beta = min(beta, score);
+                    if (beta <= alpha) return minEval;
+                    break;
+                }
+            }
+        }
+        return minEval;
+    }
+}
+\end{lstlisting}
+
+\paragraph{Explanation:}
+\begin{itemize}
+  \item \textbf{Evaluation:} The board is scored using \texttt{evaluateBoard()}, assigning high positive scores for AI wins and negative for player wins.
+  \item \textbf{Depth:} Limits recursion to maintain performance.
+  \item \textbf{Alpha–Beta Pruning:} Prunes subtrees that cannot influence the final decision, drastically improving efficiency.
+  \item \textbf{AI Move Selection:} \texttt{getBestMove()} calls minimax iteratively to choose the highest-scoring column.
+\end{itemize}
+
+\begin{lstlisting}[language=C++]
+int Connect4::getBestMove() {
+    int bestScore = -1e9;
+    int bestCol = 3;
+    for (int c = 0; c < COLS; ++c) {
+        for (int r = ROWS - 1; r >= 0; --r) {
+            if (board[r][c] == '.') {
+                board[r][c] = 'O';
+                int score = minimax(6, false, -1e9, 1e9);
+                board[r][c] = '.';
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestCol = c;
+                }
+                break;
+            }
+        }
+    }
+    return bestCol;
+}
+\end{lstlisting}
+
+\paragraph{AI Behavior:}
+\begin{itemize}
+  \item The AI anticipates the player’s future moves and blocks threats early.  
+  \item Depth-limited recursion balances strategy and performance.  
+  \item The algorithm simulates human-like intelligent play.
+\end{itemize}
+% ===========================================
+\subsection{Player Class}
+
+The \textbf{Player} class forms the foundation of user data management across the entire multi-game system.  
+It encapsulates essential information such as player name, current game, and cumulative score, while also demonstrating elegant use of operator overloading to handle score updates.
+
+---
+
+\subsubsection{Encapsulation}
+
+Encapsulation is implemented through member variables that represent a player's identity and score.  
+Although these members are declared as \texttt{public} for accessibility across different modules, the manipulation of these attributes is controlled through well-defined constructors and operator functions.
+
+\begin{lstlisting}[language=C++]
+class Player {
+public:
+    string name;
+    int score;
+    string currentGame;
+
+    Player(string n = "Player", string g = "None", int s = 0)
+        : name(n), currentGame(g), score(s) {}
+
+    Player& operator+=(int points) {
+        score += points;
+        return *this;
+    }
+};
+\end{lstlisting}
+
+
+\subsubsection{Abstraction}
+
+The class abstracts away unnecessary complexity by providing an intuitive interface for score management.  
+Rather than requiring multiple function calls to update or read scores, operator overloading hides internal logic behind simple expressions.
+
+\begin{lstlisting}[language=C++]
+Player p("john", "Wordle", 20);
+p += 50;   // Abstracted score update
+\end{lstlisting}
+
+Here, the use of \texttt{p += 50} abstracts the actual modification process, allowing other components (like Leaderboard or Game) to focus purely on gameplay logic.
+
+---
+
+\subsubsection{Inheritance}
+
+While the \texttt{Player} class is not derived from any base class, it serves as a compositional unit used by multiple derived game classes such as \texttt{Wordle}, \texttt{TicTacToe}, \texttt{Connect4}, \texttt{Minesweeper}, and \texttt{Battleship}.  
+
+Each of these game classes includes a \texttt{Player} object to track individual performance:
+
+\begin{lstlisting}[language=C++]
+class Game {
+protected:
+    string gameName;
+    Player player;   // Composition relationship
+public:
+    ...
+};
+\end{lstlisting}
+
+\paragraph{Composition Explanation:}
+\begin{itemize}
+  \item Instead of inheritance, the relationship between \texttt{Game} and \texttt{Player} is \textbf{composition}.
+  \item Each \texttt{Game} object "owns" a \texttt{Player} object, meaning that when the game ends, its player data persists independently for leaderboard integration.
+\end{itemize}
+
+---
+
+\subsubsection{Polymorphism}
+
+The \texttt{Player} class itself is not polymorphic (it contains no virtual functions), but it participates indirectly in polymorphism through its interactions with polymorphic game classes.  
+
+When the main engine handles different games polymorphically, each game’s \texttt{player} instance dynamically updates and integrates with the leaderboard system:
+
+\begin{lstlisting}[language=C++]
+Game* g = new Wordle("john");
+g->start();   // Updates player's score dynamically
+\end{lstlisting}
+
+The polymorphic connection between derived games and their internal player objects provides a unified scoring system across different game modules.
+
+---
+
+\subsubsection{Operator Overloading}
+
+Operator overloading is the most prominent OOP feature in the \texttt{Player} class.  
+It simplifies score manipulation and makes the syntax more natural and readable.
+
+\begin{lstlisting}[language=C++]
+Player& operator+=(int points) {
+    score += points;
+    return *this;
+}
+\end{lstlisting}
+% ===========================================
+\subsection{Game Base Class}
+
+The \textbf{Game} class serves as the abstract foundation for all individual games in the multi-game system, including Wordle, TicTacToe, Minesweeper, Connect4, and Battleship.  
+It defines the essential structure and behavior expected from every game through the use of \textbf{abstraction}, \textbf{inheritance}, and \textbf{polymorphism}.  
+Additionally, it integrates a shared \texttt{Player} object, establishing a unified interface for score management across all derived games.
+
+---
+
+\subsubsection{Encapsulation}
+
+Encapsulation is applied through the use of \texttt{protected} and \texttt{private} access modifiers.  
+The attributes \texttt{gameName} and \texttt{player} are concealed within the class, accessible only to derived games and the base class itself.
+
+\begin{lstlisting}[language=C++]
+class Game {
+protected:
+    string gameName;   // Encapsulated title of the game
+    Player player;     // Composition of Player object
+
+public:
+    Game(string gName = "Game", string pName = "Player", int s = 0);
+    ~Game();
+    virtual void display() const = 0;
+    virtual void showLogo() = 0;
+    virtual void start() = 0;
+    virtual void showRules() = 0;
+    virtual void reset() = 0;
+    friend ostream& operator<<(ostream& out, const Game& g);
+};
+\end{lstlisting}
+
+\paragraph{Explanation:}
+\begin{itemize}
+  \item \texttt{gameName} holds the title of the active game (e.g., “Wordle”).  
+  \item \texttt{player} contains the current user’s profile and score, defined via composition of the \texttt{Player} class.  
+  \item The class design prevents external functions from directly altering core data; changes must occur through the defined public interface.  
+\end{itemize}
+
+---
+
+\subsubsection{Abstraction}
+
+The \texttt{Game} class uses \textbf{pure virtual functions} to define the blueprint for all games.  
+This abstracts out the concept of a “game” into generic behaviors that every subclass must implement.
+
+\begin{lstlisting}[language=C++]
+virtual void display() const = 0;
+virtual void showLogo() = 0;
+virtual void start() = 0;
+virtual void showRules() = 0;
+virtual void reset() = 0;
+\end{lstlisting}
+
+\paragraph{Conceptual Meaning:}
+\begin{itemize}
+  \item Each derived game must provide its own implementation for displaying the interface, running the gameplay, showing rules, and resetting state.
+  \item The abstraction ensures consistency — every game, regardless of genre, behaves under a uniform structure.
+\end{itemize}
+
+
+
+\subsubsection{Inheritance}
+
+The \texttt{Game} class acts as the root of the inheritance hierarchy.  
+All playable modules such as Wordle, Connect4, Minesweeper, and Battleship extend from it.
+
+\begin{lstlisting}[language=C++]
+class TicTacToe : public Game { ... };
+class Connect4  : public Game { ... };
+class Minesweeper : public Game { ... };
+class Battleship : public Game { ... };
+\end{lstlisting}
+
+\paragraph{Constructor Chaining Example}
+:
+\begin{lstlisting}[language=C++]
+Game::Game(string gName, string pName, int s)
+    : gameName(gName), player(pName, gName, s) {}
+\end{lstlisting}
+This ensures that each derived game inherits the base initialization logic, linking the player profile with the current game name.
+
+---
+
+\subsubsection{Polymorphism}
+
+Polymorphism allows dynamic method dispatch — the program decides at runtime which game’s implementation of a virtual function to execute.  
+This makes the system modular and easily extensible.
+
+\begin{lstlisting}[language=C++]
+auto game = make_game<Connect4>(playerName);
+game->showLogo();
+game->start();
+\end{lstlisting}
+
+This dynamic binding enables the central game engine to handle multiple types of games through a single pointer or reference to the base class.
+
+\paragraph{Polymorphic Operator Example}
+:
+\begin{lstlisting}[language=C++]
+ostream& operator<<(ostream& out, const Game& g) {
+    g.display();   // Executes derived class's display()
+    return out;
+}
+\end{lstlisting}
+
+
+
+\subsubsection{Operator Overloading}
+
+Operator overloading is implemented through the \texttt{operator<<} function.  
+This allows any derived game to be printed directly using the standard output stream syntax.
+
+\begin{lstlisting}[language=C++]
+friend ostream& operator<<(ostream& out, const Game& g);
+\end{lstlisting}
+
+By combining this with polymorphism, each specific game controls its own display behavior.
+% ===========================================
+\subsection{Leaderboard Class}
+
+The \textbf{Leaderboard} class serves as the central data management component of the entire project, responsible for maintaining player scores, ranking, and persistence across multiple gaming sessions.  
+It demonstrates strong object-oriented design principles through encapsulation, operator overloading, and class composition with the \texttt{Player} class.
+
+---
+
+\subsubsection{Encapsulation}
+
+Encapsulation ensures that all leaderboard data — including player scores and file management — is securely handled within the class.  
+Direct access to the score data or file structure is restricted; interaction occurs only through controlled public methods.
+
+\begin{lstlisting}[language=C++]
+class Leaderboard {
+private:
+    string filename;
+    vector<Player> players;
+
+    void sortByScore() {
+        sort(players.begin(), players.end(),
+             [](const Player& a, const Player& b) {
+                 return a.score > b.score;
+             });
+    }
+
+public:
+    Leaderboard(string gameName = "General") {
+        filename = gameName + "_lb.txt";
+        load();
+    }
+
+    void load();
+    void save() const;
+    ...
+};
+\end{lstlisting}
+
+
+
+\subsubsection{Abstraction}
+
+The class abstracts away complex file handling and data sorting through simple, expressive operations.  
+A game developer can merge, add, or display leaderboards without knowing the underlying file operations.
+
+\begin{lstlisting}[language=C++]
+Leaderboard lb("Connect4");
+lb = lb + player;     // Adds player score to leaderboard
+cout << lb;           // Displays formatted leaderboard
+\end{lstlisting}
+
+This abstraction simplifies user interaction, reducing logic in other modules and centralizing persistence.
+
+---
+
+\subsubsection{Inheritance}
+
+Although the \texttt{Leaderboard} class does not inherit from another class, it plays a vital role in the composition hierarchy by integrating tightly with the \texttt{Player} class.
+
+\begin{lstlisting}[language=C++]
+vector<Player> players;
+\end{lstlisting}
+
+\paragraph{Explanation:}
+\begin{itemize}
+  \item This relationship represents \textbf{aggregation} — the \texttt{Leaderboard} “has-a” collection of \texttt{Player} objects.
+  \item Each player is managed within the leaderboard, but the player class itself is independent and reusable.
+\end{itemize}
+
+---
+
+\subsubsection{Polymorphism}
+
+While the \texttt{Leaderboard} class does not implement virtual functions, it participates in polymorphism through its seamless use across different polymorphic \texttt{Game} objects.
+
+\begin{lstlisting}[language=C++]
+Leaderboard lb(gameName);
+lb = lb + player;   // Works for all derived Game types
+\end{lstlisting}
+
+No matter which derived class of \texttt{Game} (Wordle, Connect4, Minesweeper, etc.) invokes it, the same leaderboard behavior applies — showcasing polymorphic integration through consistent interfaces.
+
+---
+
+\subsubsection{Operator Overloading}
+
+The \texttt{Leaderboard} class features multiple operator overloads, allowing intuitive and concise operations that replace verbose function calls.
+
+\paragraph{Overloaded Operators:}
+\begin{itemize}
+  \item \texttt{operator+(const Player\& p)} – Adds or updates a player’s score.
+  \item \texttt{operator+(const Leaderboard\& other)} – Combines two leaderboards.
+  \item \texttt{friend operator<<} – Displays the leaderboard in a formatted style.
+\end{itemize}
+
+\begin{lstlisting}[language=C++]
+Leaderboard& operator+(const Player& p) {
+    bool found = false;
+    for (auto& existing : players) {
+        if (existing.name == p.name && existing.currentGame == p.currentGame) {
+            existing.score = max(existing.score, p.score);
+            found = true;
+            break;
+        }
+    }
+    if (!found) players.push_back(p);
+    sortByScore();
+    save();
+    return *this;
+}
+\end{lstlisting}
+
+\paragraph{Explanation:}
+\begin{itemize}
+  \item If a player already exists in the file, their highest score is preserved.
+  \item New players are appended automatically.
+  \item The file is re-sorted and saved after each modification.
+\end{itemize}
+
+\paragraph{Leaderboard Combination}
+:
+\begin{lstlisting}[language=C++]
+Leaderboard Leaderboard::operator+(const Leaderboard& other) const {
+    Leaderboard combined("MainLeaderboard");
+    combined.players = players;
+    for (const auto& p : other.players) {
+        bool found = false;
+        for (auto& existing : combined.players) {
+            if (existing.name == p.name) {
+                existing.score += p.score;
+                found = true;
+                break;
+            }
+        }
+        if (!found) combined.players.push_back(p);
+    }
+    combined.sortByScore();
+    return combined;
+}
+\end{lstlisting}
+This operator enables leaderboard merging — combining scores from multiple games (e.g., a global ranking system).
+
+\paragraph{Output Operator Overload}
+:
+\begin{lstlisting}[language=C++]
+friend ostream& operator<<(ostream& out, const Leaderboard& lb) {
+    out << "\n Leaderboard: " << lb.filename << "\n";
+    out << "---------------------------------\n";
+    int rank = 1;
+    for (const auto& p : lb.players)
+        out << rank++ << ". " << p.name << " - " << p.score << "\n";
+    out << "---------------------------------\n";
+    return out;
+}
+\end{lstlisting}
+
+This provides a clean and formatted console output for all leaderboard displays.
+
+
+% ---------------------------
+% Include page 1 of the PDF, draw a frame, and add a description below
+% ---------------------------
+\includepdf[
+    pages=1,
+    scale=0.85,
+    frame=true,     
+    landscape=true, % adds a border
+    pagecommand={%
+        \vspace{0.5cm}
+    }
+]{systemdesign.pdf}
+\includepdf[
+    pages=1,                   % which page of the PDF
+    landscape=true,             % rotate this page to landscape
+    scale=0.95,                  % shrink a bit to leave border space
+    frame=true,                 % draw border
+    pagecommand={%
+        \vspace{0.3cm}
+    }
+]{Oopsimage.png}
+%============================================
+\subsection{Factory Function Template and Exception Handling}
+
+\textbf{Factory Function Template:} 
+
+The \texttt{make\_game} function is a C++ \textit{function template} that creates instances of any game type generically. It accepts arbitrary constructor arguments using a \texttt{parameter pack} (\texttt{Args\&\&... args}) and perfectly forwards them to the constructor of \texttt{GameT} with \texttt{std::forward}. This ensures type safety and correct constructor invocation. Ownership is returned as a \texttt{std::unique\_ptr}, automatically managing memory. Example:
+
+\begin{lstlisting}[language=C++]
+auto game = make_game<Minesweeper>(9, 9, 10, playerName);
+game->showLogo();
+game->start();
+\end{lstlisting}
+
+\textbf{Inner Exception Handling (per game):} 
+
+Inside \texttt{mainMenu()}, each game launch is wrapped in a \texttt{try-catch} block to catch exceptions specific to that game session. This prevents one game's error from crashing the menu loop:
+
+\begin{lstlisting}[language=C++]
+try {
+    auto game = make_game<Wordle>(playerName);
+    game->showLogo();
+    game->start();
+} catch (const std::exception& e) {
+    cout << "Game error: " << e.what() << endl;
+    this_thread::sleep_for(chrono::seconds(2));
+}
+\end{lstlisting}
+
+This ensures that if, for example, Wordle fails to initialize, the error is reported and the program continues running, returning the user to the menu.
+
+\textbf{Outer Exception Handling (program level):} 
+
+The \texttt{main()} function wraps the entire program execution in a top-level \texttt{try-catch}:
+
+\begin{lstlisting}[language=C++]
+try {
+    mainMenu();
+} catch (const std::exception& e) {
+    cerr << "Fatal error: " << e.what() << endl;
+} catch (...) {
+    cerr << "Unknown fatal error occurred." << endl;
+}
+\end{lstlisting}
+
+This catches any exceptions that propagate beyond \texttt{mainMenu()}, ensuring the program terminates gracefully instead of crashing unexpectedly.
+
+% --- Include page 1 of PDF inside a framed box with caption ---
+\section{Conclusion}
+
+The \textbf{Multi-Game Engine} project serves as a robust demonstration of Object-Oriented Programming (OOP) principles implemented in C++. It brings together multiple independent games — including \textit{Minesweeper}, \textit{Battleship}, \textit{Wordle}, \textit{Tic-Tac-Toe}, and \textit{Connect Four} — within a unified, modular, and extensible framework. Each game class inherits from a common abstract base class \texttt{Game}, which defines a consistent interface for essential operations such as Initialization, Animated Logo Display, Gameplay, Rule Display, and Reset functions.
+
+\vspace{1em}
+This architectural choice enables clear separation of concerns and promotes reusability across the entire system. The design ensures that newly added games can be integrated seamlessly without altering existing functionality — showcasing one of the core strengths of OOP: \textbf{extensibility through inheritance and abstraction}.
+
+\vspace{1em}
+\textbf{Implemented OOP Features:}
+\begin{itemize}
+    \item \textbf{Encapsulation}
+    \item \textbf{Abstraction}
+    \item \textbf{Inheritance}
+    \item \textbf{Polymorphism}
+    \item \textbf{Operator Overloading}
+    \item \textbf{Exception Handling}
+    \item \textbf{Function Templates}
+\end{itemize}
+\vspace{1em}
+\textbf{Future Outlook:} The next phase of development will focus on enhancing system flexibility through templates, refining dynamic polymorphism, and integrating structured exception handling to ensure reliability. These improvements will elevate the \textbf{Multi-Game Engine} from a functional prototype to a professional-grade, reusable framework that can serve as a foundation for larger, AI-enhanced gaming ecosystems. \textbf{Leaderboard Optimization} can be introduced :  templated comparison operators to sort players based on various performance metrics such as time, accuracy, and game difficulty.
+
+\newpage
+
+\section{Outputs}
+
+The following screenshots show the program's terminal output for various game states and menu interactions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{op1.png}
+    \caption{Animated intro screen when the program starts.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{op2.png}
+    \caption{Main menu display with all game options.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{3.png}
+    \caption{Entering Name}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{4.png}
+    \caption{Battleship (Logo/Rules)}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{5.png}
+    \caption{Battleship (Playing)}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{6.png}
+    \caption{Connect 4(Playing)}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{7.png}
+    \caption{Minesweeper (Logo/Rules)}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{8.png}
+    \caption{Minesweeper (Playing)}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{9.png}
+    \caption{Wordle (Logo/Rules)}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{10.png}
+    \caption{Wordle (Playing)}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{11.png}
+    \caption{TicTacToe (Logo/Rules)}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{12.png}
+    \caption{TicTacToe (Playing)}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{op8.png}
+    \caption{Combined leaderboard display showing scores from all games.}
+\end{figure}
+
+\end{document}
