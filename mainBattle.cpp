@@ -13,6 +13,8 @@
 #include <exception>
 
 #ifdef _WIN32
+#define NOMINMAX
+#define byte win_byte_override
 #include <windows.h>
 #endif
 
