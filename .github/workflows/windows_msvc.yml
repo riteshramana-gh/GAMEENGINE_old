@@ -13,21 +13,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Visual Studio developer environment
-        uses: microsoft/setup-msbuild@v2
+      - name: Setup Visual Studio environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
-      - name: Build with MSVC (cl.exe)
+      - name: Build using MSVC (cl.exe)
         shell: pwsh
         run: |
-          Write-Host "Compiling with MSVC (cl.exe)..."
-
-          # Create output folder
+          Write-Host "Compiling with MSVC..."
           mkdir build
 
-          # Compile all .cpp files
-          cl /utf-8 /EHsc /Zi /Fe:build/pixelforge_win.exe *.cpp
+          # Compile ALL .cpp files
+          cl /std:c++20 /utf-8 /EHsc /Zi /Fe:build/pixelforge_win.exe *.cpp
 
-      - name: Upload Windows executable
+      - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
           name: pixelforge_win
